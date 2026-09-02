@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>HazWaste Detection</title>
+
+    <!-- FastAPI static file -->
+    <link
+        rel="stylesheet"
+        href="/static/style.css?v=3"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+    <!-- ======================================================
+         HEADER
+         ====================================================== -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>
+                HazWaste Detection
+            </h1>
+
+            <p>
+                Cylinder &amp; Shock Absorber
+                Detection System
+            </p>
+
+        </div>
+
+
+        <div class="status-pill">
+
+            <span></span>
+
+            System Ready
+
+        </div>
+
+    </header>
+
+
+
+    <!-- ======================================================
+         MODEL + SETTINGS
+         ====================================================== -->
+
+    <section class="toolbar">
+
+
+        <!-- MODEL -->
+
+        <div class="field">
+
+            <label for="model">
+                Detection Model
+            </label>
+
+
+            <select id="model">
+
+                {% for item in models %}
+
+                <option
+                    value="{{ item.name }}"
+                    {% if item.name == default_model %}
+                        selected
+                    {% endif %}
+                    {% if not item.available %}
+                        disabled
+                    {% endif %}
+                >
+
+                    {{ item.name }}
+
+                    {% if not item.available %}
+                        (missing)
+                    {% endif %}
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <!-- CONFIDENCE -->
+
+        <div class="field">
+
+            <label for="confidence">
+
+                Confidence
+
+                <span id="confidenceValue">
+                    0.40
+                </span>
+
+            </label>
+
+
+            <input
+                id="confidence"
+                type="range"
+                min="0.10"
+                max="0.95"
+                step="0.05"
+                value="0.40"
+            >
+
+        </div>
+
+
+
+        <!-- IOU -->
+
+        <div class="field">
+
+            <label for="iou">
+
+                IoU
+
+                <span id="iouValue">
+                    0.50
+                </span>
+
+            </label>
+
+
+            <input
+                id="iou"
+                type="range"
+                min="0.10"
+                max="0.95"
+                step="0.05"
+                value="0.50"
+            >
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ======================================================
+         TABS
+         ====================================================== -->
+
+    <nav class="tabs">
+
+
+        <button
+            type="button"
+            class="tab active"
+            data-panel="imagePanel"
+        >
+            Image
+        </button>
+
+
+        <button
+            type="button"
+            class="tab"
+            data-panel="videoPanel"
+        >
+            Video
+        </button>
+
+
+        <button
+            type="button"
+            class="tab"
+            data-panel="webcamPanel"
+        >
+            Webcam
+        </button>
+
+
+    </nav>
+
+
+
+    <main>
+
+
+        <!-- ==================================================
+             IMAGE PANEL
+             ================================================== -->
+
+        <section
+            id="imagePanel"
+            class="panel active"
+        >
+
+
+            <input
+                id="imageInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/bmp"
+                hidden
+            >
+
+
+            <div class="dropzone">
+
+
+                <div class="icon">
+                    IMG
+                </div>
+
+
+                <h2>
+                    Upload an image
+                </h2>
+
+
+                <p>
+                    JPG, JPEG, PNG, WEBP or BMP
+                </p>
+
+
+                <!-- Native browser file picker -->
+
+                <label
+                    for="imageInput"
+                    class="primary file-button"
+                >
+                    Choose Image
+                </label>
+
+
+                <div
+                    id="selectedImageName"
+                    class="file-name"
+                >
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             VIDEO PANEL
+             ================================================== -->
+
+        <section
+            id="videoPanel"
+            class="panel"
+        >
+
+
+            <input
+                id="videoInput"
+                type="file"
+                accept="video/mp4,video/avi,video/quicktime,video/x-matroska,video/webm"
+                hidden
+            >
+
+
+            <div class="dropzone">
+
+
+                <div class="icon">
+                    VID
+                </div>
+
+
+                <h2>
+                    Upload a video
+                </h2>
+
+
+                <p>
+                    MP4, AVI, MOV, MKV or WEBM
+                </p>
+
+
+                <!-- Native browser file picker -->
+
+                <label
+                    for="videoInput"
+                    class="primary file-button"
+                >
+                    Choose Video
+                </label>
+
+
+                <div
+                    id="selectedVideoName"
+                    class="file-name"
+                >
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             WEBCAM PANEL
+             ================================================== -->
+
+        <section
+            id="webcamPanel"
+            class="panel"
+        >
+
+
+            <div class="camera-toolbar">
+
+
+                <button
+                    id="startWebcam"
+                    type="button"
+                    class="primary"
+                >
+                    Start Webcam
+                </button>
+
+
+                <button
+                    id="stopWebcam"
+                    type="button"
+                    class="secondary"
+                    disabled
+                >
+                    Stop Webcam
+                </button>
+
+
+            </div>
+
+
+
+            <div class="camera-box">
+
+                <video
+                    id="camera"
+                    autoplay
+                    playsinline
+                    muted
+                ></video>
+
+            </div>
+
+
+            <canvas
+                id="cameraCanvas"
+                hidden
+            ></canvas>
+
+
+        </section>
+
+
+
+        <!-- ==================================================
+             RESULTS
+             ================================================== -->
+
+        <section class="result-section">
+
+
+            <div class="result-header">
+
+
+                <h2>
+                    Detection Result
+                </h2>
+
+
+                <span id="status">
+                    Ready
+                </span>
+
+
+            </div>
+
+
+
+            <div class="result-grid">
+
+
+                <!-- ==========================================
+                     PREVIEW
+                     ========================================== -->
+
+                <div class="preview">
+
+
+                    <div
+                        id="emptyState"
+                        class="empty"
+                    >
+
+                        <strong>
+                            No result yet
+                        </strong>
+
+                        <span>
+                            Upload an image/video
+                            or start the webcam.
+                        </span>
+
+                    </div>
+
+
+
+                    <!-- IMAGE RESULT -->
+
+                    <img
+                        id="resultImage"
+                        alt="Detection result"
+                        hidden
+                    >
+
+
+
+                    <!-- VIDEO RESULT -->
+
+                    <video
+                        id="resultVideo"
+                        controls
+                        hidden
+                    ></video>
+
+
+                </div>
+
+
+
+                <!-- ==========================================
+                     STATISTICS
+                     ========================================== -->
+
+                <aside class="stats">
+
+
+                    <!-- TOTAL OBJECTS -->
+
+                    <div class="stat">
+
+                        <span>
+                            Total objects
+                        </span>
+
+                        <strong id="total">
+                            0
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- CYLINDER -->
+
+                    <div class="stat">
+
+                        <span>
+                            Cylinder
+                        </span>
+
+                        <strong id="cylinder">
+                            0
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- SHOCK ABSORBER -->
+
+                    <div class="stat">
+
+                        <span>
+                            Shock absorber
+                        </span>
+
+                        <strong id="shock">
+                            0
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- AVERAGE CONFIDENCE -->
+
+                    <div class="stat">
+
+                        <span>
+                            Average confidence
+                        </span>
+
+                        <strong id="avgConfidence">
+                            0.00
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- INFERENCE -->
+
+                    <div class="stat">
+
+                        <span>
+                            Inference
+                        </span>
+
+                        <strong id="latency">
+                            0 ms
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- DOWNLOAD -->
+
+                    <a
+                        id="download"
+                        class="download"
+                        hidden
+                    >
+                        Download Result
+                    </a>
+
+
+                </aside>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+
+    <!-- ======================================================
+         FOOTER
+         ====================================================== -->
+
+    <footer>
+
+        HazWaste Detection
+
+    </footer>
+
+
+</div>
+
+
+
+<!-- ==========================================================
+     FASTAPI STATIC JAVASCRIPT
+     ========================================================== -->
+
+<script
+    src="/static/app.js?v=3"
+></script>
+
+
+</body>
+
+</html>
