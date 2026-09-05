@@ -536,14 +536,6 @@ Future development can focus on:
 
 ---
 
-## License
-
-**Code:** Add the license you actually use for your repository.
-
-**Dataset:** Add the dataset license/source information that applies to your Roboflow dataset.
-
----
-
 ## Author
 
 **Dharanish Arumugam**
